@@ -294,6 +294,7 @@ body {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
   gap: 18px;
+  margin-top: 18px;
 }
 
 
@@ -487,8 +488,8 @@ body {
 
 .favorites-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: 8px;
 }
 
 .favorites-list {
@@ -496,6 +497,51 @@ body {
   gap: 12px;
   flex-wrap: wrap;
   margin-top: 12px;
+}
+
+.location-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.favorite-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  height: auto;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: #94a3b8;
+  font-size: 28px;
+  cursor: pointer;
+  transition: transform 150ms ease, opacity 150ms ease, color 150ms ease;
+}
+
+.favorite-action:hover {
+  transform: translateY(-1px);
+  opacity: 0.85;
+}
+
+.favorite-action.favorited {
+  color: #facc15;
+}
+
+#weekView h2 {
+  margin-bottom: 18px;
+}
+
+#weekAstroGrid {
+  margin-top: 24px;
+}
+
+.astro-week-title {
+  margin-top: 32px;
+  margin-bottom: 18px;
 }
 
 .favorite-container {

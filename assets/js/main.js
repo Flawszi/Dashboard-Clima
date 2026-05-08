@@ -195,11 +195,20 @@ function renderLocation(place) {
     : place.country || "Localização não informada";
 
   subtitle.textContent = countryDisplay;
+  updateFavoriteButtonState(cityInput.value.trim());
+}
+
+function updateFavoriteButtonState(city) {
+  const normalizedCity = capitalizeCityName(city);
+  const isFavorite = normalizedCity && favorites.includes(normalizedCity);
+
+  favoriteButton.classList.toggle("favorited", isFavorite);
+  favoriteButton.textContent = isFavorite ? "★" : "☆";
 }
 
 // Função que renderiza os dados meteorológicos atuais, atualizando temperatura, vento, chuva, umidade e horário local no dashboard.
 function renderToday(data) {
-  // pega os dados no momento atual 
+  // pega os dados no momento atual
   const current = data.current;
 
   const daily = data.daily;
@@ -675,7 +684,7 @@ function getMoonPhaseEmoji(phase) {
 function getCountryFlag(countryCode) {
   // mapa completo de códigos de país para emojis de bandeira
   const flagMap = {
-    BR: "🇧🇷",
+    BR: "🇧🇷", 
     US: "🇺🇸",
     ES: "🇪🇸",
     FR: "🇫🇷",
@@ -728,11 +737,20 @@ function getCountryFlag(countryCode) {
   return flagMap[code] || "🌍";
 }
 
+function capitalizeCityName(text) {
+  return String(text)
+    .trim()
+    .toLowerCase()
+    .replace(/\b\w/g, (match) => match.toUpperCase());
+}
+
 // função que renderiza os favoritos na tela
 function renderFavorites() {
   favoritesList.innerHTML = "";
 
   favorites.forEach((favorite, index) => {
+    const displayName = capitalizeCityName(favorite);
+
     // container para o favorito e o botão remover
     const container = document.createElement("div");
     container.className = "favorite-container";
@@ -740,7 +758,7 @@ function renderFavorites() {
     // botão do favorito
     const button = document.createElement("button");
     button.className = "favorite-item";
-    button.textContent = favorite;
+    button.textContent = displayName;
 
     // ao clicar no favorito, pesquisa automaticamente
     button.addEventListener("click", () => {
@@ -759,6 +777,7 @@ function renderFavorites() {
       favorites.splice(index, 1); // remove do array
       localStorage.setItem("favorites", JSON.stringify(favorites)); // salva
       renderFavorites(); // re-renderiza
+      updateFavoriteButtonState(cityInput.value.trim());
     });
 
     container.appendChild(button);
@@ -773,16 +792,20 @@ favoriteButton.addEventListener("click", () => {
   // impede favoritos vazios
   if (!city) return;
 
-  // impede favoritos repetidos
-  if (favorites.includes(city)) return;
+  const normalizedCity = capitalizeCityName(city);
 
-  favorites.push(city);
+  // impede favoritos repetidos
+  if (favorites.includes(normalizedCity)) return;
+
+  favorites.push(normalizedCity);
 
   // salva no navegador
   localStorage.setItem("favorites", JSON.stringify(favorites));
 
   renderFavorites();
+  updateFavoriteButtonState(normalizedCity);
 });
 
 // Carrega os favoritos salvos ao iniciar a página
 renderFavorites();
+updateFavoriteButtonState(cityInput.value.trim());

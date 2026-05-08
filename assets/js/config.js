@@ -37,7 +37,7 @@ export const weatherMap = {
 
 // Mapa de códigos de país para emojis de bandeira
 export const flagMap = {
-  BR: "🇧🇷",
+  BR: "🇧🇷", 
   US: "🇺🇸",
   ES: "🇪🇸",
   FR: "🇫🇷",
