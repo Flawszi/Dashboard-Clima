@@ -25,10 +25,15 @@ const ASTRONOMY_APP_ID = "bfe2f7de-7f4c-405c-a98f-16f5dc1a0951";
 const ASTRONOMY_APP_SECRET =
   "d558e187b9e956b0f68df55b9557899e92c001e95b653a9c6c9acd15a8443d0635defe8dd9d72f2f496f5ab75db4097d932672068e0a6a3aaa307bc86b878e5549cb6f3749ac11615697a09169885bf5c4f6d2bb64f727091a67cdaf70296544c515b144cd924032719725c82861156cAL";
 
+const favoritesList = document.getElementById("favoritesList");
+
+const favoriteButton = document.getElementById("favoriteButton");
+
 let currentView = "today";
 
-// Objeto que relaciona os códigos meteorológicos da Open-Meteo
-// com uma descrição em português e um emoji correspondente.
+let favorites = JSON.parse(localStorage.getItem("favorites") || "[]");
+
+// Objeto que relaciona os códigos meteorológicos da Open-Meteo, com uma descrição em português e um emoji correspondente.
 const weatherMap = {
   0: { text: "Céu limpo", emoji: "☀️" },
   1: { text: "Predominantemente limpo", emoji: "🌤️" },
@@ -88,9 +93,8 @@ tabs.forEach((tab) => {
 
 form.addEventListener("submit", async (event) => {
   // Impede que o formulário recarregue a página ao ser enviado.
-   event.preventDefault();
+  event.preventDefault();
 
-  
   const city = cityInput.value.trim();
 
   // função de if que ao digitar o nome de uma cidade nula ou inválida, vai redirecionar a outra função para retornar
@@ -104,9 +108,8 @@ form.addEventListener("submit", async (event) => {
   try {
     showStatus("Buscando cidade e dados climáticos...");
 
-    
     const place = await getCityCoordinates(city);
-    console.log(place, "");
+    console.log(place, "qwrwr");
 
     if (!place) {
       showStatus("Cidade não encontrada. Tente outro nome.");
@@ -121,24 +124,23 @@ form.addEventListener("submit", async (event) => {
     renderToday(weatherData);
     renderWeek(weatherData);
 
-  // vai tentar pegar os dados astronomicos com base na latitude e longitude do lugar e exibir uma mensagem de sucesso se for o caso
-  // e vai pegar e exibir um erro caso os dados nao forem carregados corretamente
-  // foi utilizado o number para que o valor nao seja em String, ja que a latitude em texto pode gerar erro
- 
-  try {
-      showStatus("Buscando cidade e dados astronomicos...");
-  const astronomyData = await getAstronomyData(
-  Number(place.latitude),
-  Number(place.longitude)
-);
+    // vai tentar pegar os dados astronomicos com base na latitude e longitude do lugar e exibir uma mensagem de sucesso se for o caso
+    //  vai pegar e exibir um erro caso os dados nao forem carregados corretamente
+    // foi utilizado o number para que o valor nao seja em String, ja que a latitude em texto pode gerar erro
 
-renderAstro(astronomyData);
-renderAstroWeek(astronomyData);
-} catch (astroError) {
-  console.error("Erro na AstronomyAPI:", astroError);
-  showAstroError("Não foi possível carregar os dados astronômicos.");
-}
- 
+    try {
+      showStatus("Buscando cidade e dados astronomicos...");
+      const astronomyData = await getAstronomyData(
+        Number(place.latitude),
+        Number(place.longitude),
+      );
+
+      renderAstro(astronomyData);
+      renderAstroWeek(astronomyData);
+    } catch (astroError) {
+      console.error("Erro na AstronomyAPI:", astroError);
+      showAstroError("Não foi possível carregar os dados astronômicos.");
+    }
 
     hideStatus();
 
@@ -187,12 +189,17 @@ function renderLocation(place) {
 
   title.textContent = `${place.name}${place.admin1 ? ", " + place.admin1 : ""}`;
 
-  subtitle.textContent = `${place.country || "Localização não informada"}`;
+  // se houver country_code, adiciona entre parênteses
+  const countryDisplay = place.country_code
+    ? `(${place.country_code.toUpperCase()}) ${place.country}`
+    : place.country || "Localização não informada";
+
+  subtitle.textContent = countryDisplay;
 }
 
 // Função que renderiza os dados meteorológicos atuais, atualizando temperatura, vento, chuva, umidade e horário local no dashboard.
 function renderToday(data) {
-  // pega os dados no momento atual
+  // pega os dados no momento atual 
   const current = data.current;
 
   const daily = data.daily;
@@ -327,6 +334,8 @@ window.addEventListener("DOMContentLoaded", () => {
   cityInput.value = "São Paulo";
 
   form.dispatchEvent(new Event("submit"));
+
+  renderFavorites();
 });
 
 // função que obtem os dados da api Astronomy-api com base na latitude e longitude, começando pela autenticação e por fim o lançamento
@@ -376,12 +385,9 @@ async function getAstronomyData(latitude, longitude) {
   return JSON.parse(text);
 }
 
-// Função que renderiza os dados astronômicos de hoje.
-// A AstronomyAPI está usando output=rows, os dados vêm em data.data.rows.
+// Função que renderiza os dados astronômicos de hoje. A AstronomyAPI está usando output=rows, os dados vêm em data.data.rows.
 // O (?.) evita erros caso alguma parte da resposta não exista.
 function renderAstro(data) {
-
-  
   // A API está retornando os dados em data.data.rows
   const rows = data?.data?.rows || [];
 
@@ -393,30 +399,25 @@ function renderAstro(data) {
   // vai criar uma lista com alguns planetas. Utilizando filter, que percorre uma lista da API e retorna todos os itens que satisfazem uma condição
   // O 'includes' serve para verificar se o id do astro esta dentro da lista, mantendo-o
   const planets = rows.filter((item) =>
-    ["mercury", "venus", "mars", "jupiter", "saturn"].includes(item?.body?.id)
+    ["mercury", "venus", "mars", "jupiter", "saturn"].includes(item?.body?.id),
   );
 
   // Se a lua for encontrada, a lista positions vai pegar a primeira posição
   if (moon) {
-
     const moonPosition = moon?.positions?.[0];
 
-const moonPhaseEnglish = moonPosition?.extraInfo?.phase?.string;
+    const moonPhaseEnglish = moonPosition?.extraInfo?.phase?.string;
 
-const moonEmoji = getMoonPhaseEmoji(moonPhaseEnglish);
+    const moonEmoji = getMoonPhaseEmoji(moonPhaseEnglish);
 
-document.getElementById("moonPhase").textContent =
-  `${moonEmoji} ${translateMoonPhase(moonPhaseEnglish)}`;
+    document.getElementById("moonPhase").textContent =
+      `${moonEmoji} ${translateMoonPhase(moonPhaseEnglish)}`;
 
     // Essa linha pega onde a constelação da lua está, retornando o nome
- document.getElementById("moonConstellation").textContent =
-  `Constelação: ${
-    translateConstellation(
-      moonPosition?.position?.constellation?.name
-    )
-  }`;
-  
-  
+    document.getElementById("moonConstellation").textContent =
+      `Constelação: ${translateConstellation(
+        moonPosition?.position?.constellation?.name,
+      )}`;
   }
 
   // Se o sol for encontrado, a lista positions vai pegar a primeira posição
@@ -448,12 +449,9 @@ document.getElementById("moonPhase").textContent =
     const p = document.createElement("p");
 
     // Mostra o texto da linha do planeta; traduzindo o nome do planeta com base no ID e juntando a constelação
-   p.textContent =
-  `${translatePlanetName(planet.body.id)}: ${
-    translateConstellation(
-      planetPosition?.constellation?.name
-    )
-  }`;
+    p.textContent = `${translatePlanetName(planet.body.id)}: ${translateConstellation(
+      planetPosition?.constellation?.name,
+    )}`;
 
     // O 'p' é colocado dentro da div dos planetas
     planetList.appendChild(p);
@@ -462,7 +460,6 @@ document.getElementById("moonPhase").textContent =
 
 // função que renderiza os dados astronômicos da semana
 function renderAstroWeek(data) {
-
   // se 'data' existir, acessa data.data.rowso. '?' evita erro caso alguma parte nao exista
   // Se rows nao existir, retorna um array vazio
   const rows = data?.data?.rows || [];
@@ -476,8 +473,7 @@ function renderAstroWeek(data) {
 
   // cria uma lista apenas com alguns planetas. O filter percorre toda a lista e retorna somente os planetas desejados
   const planets = rows.filter((item) =>
-    ["mercury", "venus", "mars", "jupiter", "saturn"]
-      .includes(item?.body?.id)
+    ["mercury", "venus", "mars", "jupiter", "saturn"].includes(item?.body?.id),
   );
 
   // pega a div do HTML onde os cards da semana astronômica aparecerão
@@ -488,7 +484,6 @@ function renderAstroWeek(data) {
 
   // se nao houver dados da Lua ou positions mostra uma mensagem de erro e para a função
   if (!moon || !moon.positions || moon.positions.length === 0) {
-
     weekAstroGrid.innerHTML =
       "<p>Dados astronômicos da semana não disponíveis.</p>";
 
@@ -497,23 +492,19 @@ function renderAstroWeek(data) {
 
   // percorre cada posição da Lua. cada posição representa um dia/horário retornado pela API
   moon.positions.forEach((moonDay, index) => {
-
     // pega os dados do Sol usando o mesmo índice
     const sunDay = sun?.positions?.[index];
 
     // cria os textos dos planetas. o map percorre cada planeta e transforma em texto
     const planetsText = planets
       .map((planet) => {
-
         // pega os dados do planeta naquele mesmo dia
         const planetDay = planet.positions?.[index];
 
         // retorna o texto do planeta
         return `
           ${translatePlanetName(planet.body.id)}:
-          ${translateConstellation(
-  planetDay?.position?.constellation?.name
-)}
+          ${translateConstellation(planetDay?.position?.constellation?.name)}
         `;
       })
 
@@ -545,12 +536,8 @@ function renderAstroWeek(data) {
 
         <li>
           <strong>Lua:</strong>
-          ${getMoonPhaseEmoji(
-  moonDay?.extraInfo?.phase?.string
-)}
-${translateMoonPhase(
-  moonDay?.extraInfo?.phase?.string
-)}
+          ${getMoonPhaseEmoji(moonDay?.extraInfo?.phase?.string)}
+${translateMoonPhase(moonDay?.extraInfo?.phase?.string)}
         </li>
 
         <li>
@@ -601,8 +588,6 @@ function showAstroError(message) {
   document.getElementById("sunConstellation").textContent = "--";
   document.getElementById("sunAltitude").textContent = "--";
   document.getElementById("planetList").textContent = message;
-
-
 }
 
 //função que traduz as fases da lua para portugues. Se a fase não existir no objeto, retorna o texto original ou "Fase não disponível".
@@ -615,7 +600,7 @@ function translateMoonPhase(phase) {
     "Full Moon": "Lua Cheia",
     "Waning Gibbous": "Gibosa Minguante",
     "Last Quarter": "Quarto Minguante",
-    "Waning Crescent": "Lua Minguante"
+    "Waning Crescent": "Lua Minguante",
   };
 
   return phases[phase] || phase || "Fase não disponível";
@@ -623,10 +608,8 @@ function translateMoonPhase(phase) {
 
 // função que traduz o nome das constelações do inglês para português
 function translateConstellation(name) {
-
   // objeto com os nomes das constelações
   const constellations = {
-
     Aries: "Áries",
     Taurus: "Touro",
     Gemini: "Gêmeos",
@@ -645,8 +628,8 @@ function translateConstellation(name) {
     Cassiopeia: "Cassiopeia",
     Andromeda: "Andrômeda",
     Pegasus: "Pégaso",
-   
-Cygnus: "Cisne",
+
+    Cygnus: "Cisne",
     Lyra: "Lira",
     Draco: "Dragão",
     Hercules: "Hércules",
@@ -655,7 +638,7 @@ Cygnus: "Cisne",
     Phoenix: "Fênix",
     Hydra: "Hidra",
     Lupus: "Lobo",
-    Aquila: "Águia"
+    Aquila: "Águia",
   };
 
   // retorna a constelação traduzida
@@ -665,9 +648,7 @@ Cygnus: "Cisne",
 
 // função que retorna um emoji correspondente à fase da Lua
 function getMoonPhaseEmoji(phase) {
-
   const emojis = {
-
     "New Moon": "🌑",
 
     "Waxing Crescent": "🌒",
@@ -682,9 +663,126 @@ function getMoonPhaseEmoji(phase) {
 
     "Last Quarter": "🌗",
 
-    "Waning Crescent": "🌘"
+    "Waning Crescent": "🌘",
   };
 
   // retorna o emoji correspondente, se não encontrar, retorna uma Lua padrão
   return emojis[phase] || "🌙";
 }
+
+// função que converte o código ISO do país em emoji de bandeira
+// ex: "BR" -> 🇧🇷, "US" -> 🇺🇸
+function getCountryFlag(countryCode) {
+  // mapa completo de códigos de país para emojis de bandeira
+  const flagMap = {
+    BR: "🇧🇷",
+    US: "🇺🇸",
+    ES: "🇪🇸",
+    FR: "🇫🇷",
+    DE: "🇩🇪",
+    IT: "🇮🇹",
+    PT: "🇵🇹",
+    GB: "🇬🇧",
+    JP: "🇯🇵",
+    CN: "🇨🇳",
+    IN: "🇮🇳",
+    AU: "🇦🇺",
+    CA: "🇨🇦",
+    RU: "🇷🇺",
+    MX: "🇲🇽",
+    KR: "🇰🇷",
+    NZ: "🇳🇿",
+    SG: "🇸🇬",
+    AR: "🇦🇷",
+    CL: "🇨🇱",
+    CO: "🇨🇴",
+    PE: "🇵🇪",
+    VE: "🇻🇪",
+    IE: "🇮🇪",
+    NL: "🇳🇱",
+    SE: "🇸🇪",
+    NO: "🇳🇴",
+    DK: "🇩🇰",
+    FI: "🇫🇮",
+    PL: "🇵🇱",
+    CZ: "🇨🇿",
+    TR: "🇹🇷",
+    GR: "🇬🇷",
+    ZA: "🇿🇦",
+    EG: "🇪🇬",
+    NG: "🇳🇬",
+    TH: "🇹🇭",
+    MY: "🇲🇾",
+    PH: "🇵🇭",
+    ID: "🇮🇩",
+    VN: "🇻🇳",
+    BD: "🇧🇩",
+  };
+
+  if (!countryCode) {
+    return "🌍";
+  }
+
+  // converte para uppercase e busca no mapa
+  const code = String(countryCode).toUpperCase().trim();
+  return flagMap[code] || "🌍";
+}
+
+// função que renderiza os favoritos na tela
+function renderFavorites() {
+  favoritesList.innerHTML = "";
+
+  favorites.forEach((favorite, index) => {
+    // container para o favorito e o botão remover
+    const container = document.createElement("div");
+    container.className = "favorite-container";
+
+    // botão do favorito
+    const button = document.createElement("button");
+    button.className = "favorite-item";
+    button.textContent = favorite;
+
+    // ao clicar no favorito, pesquisa automaticamente
+    button.addEventListener("click", () => {
+      cityInput.value = favorite;
+      form.dispatchEvent(new Event("submit"));
+    });
+
+    // botão para remover
+    const removeButton = document.createElement("button");
+    removeButton.className = "remove-favorite";
+    removeButton.textContent = "×"; // símbolo de x
+    removeButton.title = "Remover favorito";
+
+    // ao clicar, remove da lista e salva
+    removeButton.addEventListener("click", () => {
+      favorites.splice(index, 1); // remove do array
+      localStorage.setItem("favorites", JSON.stringify(favorites)); // salva
+      renderFavorites(); // re-renderiza
+    });
+
+    container.appendChild(button);
+    container.appendChild(removeButton);
+    favoritesList.appendChild(container);
+  });
+}
+
+favoriteButton.addEventListener("click", () => {
+  const city = cityInput.value.trim();
+
+  // impede favoritos vazios
+  if (!city) return;
+
+  // impede favoritos repetidos
+  if (favorites.includes(city)) return;
+
+  favorites.push(city);
+
+  // salva no navegador
+  localStorage.setItem("favorites", JSON.stringify(favorites));
+
+  renderFavorites();
+});
+
+// Carrega os favoritos salvos ao iniciar a página
+renderFavorites();
