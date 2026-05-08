@@ -4,7 +4,14 @@
   padding: 0;
   box-sizing: border-box;
 }
+body {
+  font-family: "Segoe UI", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", "Apple Color Emoji", "Android Emoji", sans-serif;
+}
 
+/* Específico para elementos que mostram códigos de país */
+#locationSubtitle {
+  font-family: "Segoe UI Emoji", "Noto Color Emoji", "Apple Color Emoji", monospace;
+}
 :root {
   --bg: #081120;
   --bg-soft: rgba(255, 255, 255, 0.08);
@@ -470,6 +477,60 @@ body {
 
 }
 
+.favorite-section {
+  margin-top: 24px;
+  padding: 16px;
+  background: var(--card);
+  border-radius: 8px;
+  border: 1px solid var(--card-border);
+}
+
+.favorites-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.favorites-list {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.favorite-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.favorite-item {
+  padding: 10px 16px;
+  border-radius: 999px;
+  border: none;
+  cursor: pointer;
+  background: #1f2937;
+  color: white;
+}
+
+.favorite-item:hover {
+  opacity: 0.8;
+}
+
+.remove-favorite {
+  padding: 4px 8px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  background: #dc3545;
+  color: white;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.remove-favorite:hover {
+  background: #c82333;
+}
 
 
 
