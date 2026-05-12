@@ -1,70 +1,51 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-
   <meta charset="UTF-8" />
-
-
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-
   <title>Dashboard Climático</title>
-
-
   <link rel="stylesheet" href="./assets/css/styles.css" />
 </head>
 <body>
-
-
   <div class="app-bg"></div>
 
-
   <main class="container">
-
-
     <header class="hero">
-
- 
       <div>
-       
         <p class="eyebrow">Dashboard climático</p>
-
-   
         <h1>Previsão do tempo por cidade</h1>
-
-      
         <p class="subtitle">
           Consulte condições atuais e previsão semanal com uma interface moderna.
         </p>
       </div>
 
-   
       <form id="searchForm" class="search-box">
-
-       
         <input
           type="text"
           id="cityInput"
           placeholder="Digite uma cidade... Ex: São Paulo"
           autocomplete="off"
         />
-
-     
         <button type="submit">Buscar</button>
       </form>
     </header>
 
- <section class="favorite-section">
-  <div class="favorites-header">
-    <h2>Favoritos:</h2>
-  </div>
-  <div class="favorites-list" id="favoritesList"></div>
-</section>
-    
-    <section class="toolbar">
+    <section class="favorite-section">
+      <div class="favorites-header">
+        <h2>Favoritos:</h2>
+      </div>
+      <div class="favorites-list" id="favoritesList"></div>
 
-    
-     
+      <div class="favorites-search">
+        <h3>Selecionar favoritos para clima e astronomia:</h3>
+        <div id="favoritesCheckboxes" class="favorites-checkboxes"></div>
+        <button id="searchFavoriteButton" class="search-favorite-btn" type="button">
+          Mostrar clima e astronomia selecionados
+        </button>
+      </div>
+    </section>
+
+    <section class="toolbar">
       <div class="location-area">
         <div class="location-header">
           <h2 id="locationTitle">Selecione uma cidade</h2>
@@ -73,166 +54,125 @@
         <p id="locationSubtitle">Busque uma cidade para ver as métricas.</p>
       </div>
 
-      
-    
       <div class="view-switch">
         <button class="tab active" data-view="today">Hoje</button>
         <button class="tab" data-view="week">Semana</button>
       </div>
     </section>
 
-  
     <section id="statusMessage" class="status hidden"></section>
 
-  
     <section id="todayView" class="view active">
-
-     
       <div class="cards-grid">
-
-  
         <article class="metric-card main-card">
           <span class="card-label">Clima</span>
-
-       
           <h3 id="weatherDescription">--</h3>
-
-       
           <p id="weatherEmoji" class="weather-emoji">☁️</p>
         </article>
 
         <article class="metric-card">
           <span class="card-label">Temperatura</span>
-
-        
           <h3 id="currentTemp">-- °C</h3>
-
-        
           <p id="feelsLike">Sensação: -- °C</p>
         </article>
 
-
         <article class="metric-card">
           <span class="card-label">Chuva</span>
-
-        
           <h3 id="currentRain">-- mm</h3>
-
-        
           <p id="rainChance">Probabilidade: --%</p>
         </article>
 
-      
         <article class="metric-card">
           <span class="card-label">Vento</span>
-
-        
           <h3 id="currentWind">-- km/h</h3>
-
-        
           <p id="windDirection">Direção: --</p>
         </article>
       </div>
 
-     
       <div class="details-panel">
-
-      
         <div class="details-item">
           <span>Umidade</span>
           <strong id="humidity">--%</strong>
         </div>
 
-       
         <div class="details-item">
           <span>Máxima do dia</span>
           <strong id="maxTemp">-- °C</strong>
         </div>
 
-       
         <div class="details-item">
           <span>Mínima do dia</span>
           <strong id="minTemp">-- °C</strong>
         </div>
 
-      
         <div class="details-item">
           <span>Horário local</span>
           <strong id="localTime">--</strong>
         </div>
       </div>
+
+      <section id="todayAstroSection" class="astro-section">
+        <h2>Dados Astronômicos</h2>
+        <p class="astro-subtitle">
+          Informações do céu com base na cidade pesquisada.
+        </p>
+
+        <div class="astro-grid">
+          <article class="astro-card">
+            <span class="card-label">Lua</span>
+            <h3 id="moonPhase">--</h3>
+            <p id="moonConstellation">Constelação: --</p>
+          </article>
+
+          <article class="astro-card">
+            <span class="card-label">Sol</span>
+            <h3 id="sunConstellation">--</h3>
+            <p id="sunAltitude">Altitude: --</p>
+          </article>
+
+          <article class="astro-card">
+            <span class="card-label">Planetas</span>
+            <div id="planetList">Busque uma cidade para ver os planetas.</div>
+          </article>
+        </div>
+      </section>
+
+      <section id="favoritesTodaySection" class="astro-section favorites-astro-section favorites-dashboard-section hidden">
+        <h2>Clima e Astronomia dos Favoritos</h2>
+        <p class="astro-subtitle">
+          Clima e informações do céu com base nos favoritos selecionados.
+        </p>
+        <div id="favoritesTodayResults" class="favorites-astro-results"></div>
+      </section>
     </section>
 
-  
-   <section id="weekView" class="view">
-  <h2>Previsão da Semana</h2>
-  <div id="weekGrid" class="week-grid"></div>
+    <section id="weekView" class="view">
+      <h2>Previsão da Semana</h2>
+      <div id="weekGrid" class="week-grid"></div>
 
-  <h2 class="astro-week-title">Astronomia da Semana</h2>
-  <div id="weekAstroGrid" class="week-grid"></div>
-</section>
+      <h2 class="astro-week-title">Astronomia da Semana</h2>
+      <div id="weekAstroGrid" class="week-grid"></div>
 
-
-<section id="todayAstroSection" class="astro-section">
-      <h2>Dados Astronômicos</h2>
-
-      <p class="astro-subtitle">
-        Informações do céu com base na cidade pesquisada.
-      </p>
-
-      <div class="astro-grid">
-
-        <article class="astro-card">
-          <span class="card-label">Lua</span>
-
-          <h3 id="moonPhase">--</h3>
-
-          <p id="moonConstellation">
-            Constelação: --
-          </p>
-        </article>
-
-        <article class="astro-card">
-          <span class="card-label">Sol</span>
-
-          <h3 id="sunConstellation">--</h3>
-
-          <p id="sunAltitude">
-            Altitude: --
-          </p>
-        </article>
-
-        <article class="astro-card">
-          <span class="card-label">Planetas</span>
-
-          <div id="planetList">
-            Busque uma cidade para ver os planetas.
-          </div>
-        </article>
-
-
-            </div>
+      <section id="favoritesWeekSection" class="astro-section favorites-astro-section favorites-dashboard-section hidden">
+        <h2>Semana dos Favoritos</h2>
+        <p class="astro-subtitle">
+          Clima e astronomia por dia com base nos favoritos selecionados.
+        </p>
+        <div id="favoritesWeekResults" class="favorites-astro-results"></div>
+      </section>
     </section>
 
     <footer class="footer-note">
-      
-       <p>Dados meteorológicos por 
-        <a href="https://open-meteo.com/" target="_blank" rel="noreferrer">
-          Open-Meteo
-       </p>
-        </a>
-        
-       <p> Dados astronômicos por
-        <a href="https://astronomyapi.com/" target="_blank" rel="noreferrer">
-          AstronomyAPI
-        </a>
+      <p>
+        Dados meteorológicos por
+        <a href="https://open-meteo.com/" target="_blank" rel="noreferrer">Open-Meteo</a>
       </p>
-      
+      <p>
+        Dados astronômicos por
+        <a href="https://astronomyapi.com/" target="_blank" rel="noreferrer">AstronomyAPI</a>
+      </p>
     </footer>
-          
-
   </main>
-
 
   <script type="module" src="./assets/js/main.js"></script>
 </body>

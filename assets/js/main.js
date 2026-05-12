@@ -18,6 +18,13 @@ const todayAstroSection = document.getElementById("todayAstroSection");
 
 const weekAstroGrid = document.getElementById("weekAstroGrid");
 
+const todayWeatherGrid = document.querySelector("#todayView > .cards-grid");
+const todayDetailsPanel = document.querySelector("#todayView > .details-panel");
+const weekWeatherTitle = document.querySelector("#weekView > h2");
+const weekAstroTitle = document.querySelector("#weekView > .astro-week-title");
+
+
+
 const statusMessage = document.getElementById("statusMessage");
 
 const ASTRONOMY_APP_ID = "bfe2f7de-7f4c-405c-a98f-16f5dc1a0951";
@@ -32,6 +39,22 @@ const favoriteButton = document.getElementById("favoriteButton");
 let currentView = "today";
 
 let favorites = JSON.parse(localStorage.getItem("favorites") || "[]");
+
+let selectedFavoriteCities = new Set();
+
+let currentPlace = null;
+
+let showingFavoriteDashboard = false;
+
+// Escapa texto para evitar injeção de HTML em valores dinâmicos
+function escapeHtml(text) {
+  return String(text)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
 
 // Objeto que relaciona os códigos meteorológicos da Open-Meteo, com uma descrição em português e um emoji correspondente.
 const weatherMap = {
@@ -68,27 +91,58 @@ const weatherMap = {
 // Percorre todas as abas do dashboard. Quando o usuário clicar em uma aba, a visualização atual será alterada entre "Hoje" e "Semana".
 tabs.forEach((tab) => {
   tab.addEventListener("click", () => {
-    currentView = tab.dataset.view;
-
-    tabs.forEach((t) => t.classList.remove("active"));
-
-    tab.classList.add("active");
-
-    if (currentView === "today") {
-      todayView.classList.add("active");
-      weekView.classList.remove("active");
-
-      // mostra os cards astronômicos de hoje
-      todayAstroSection.style.display = "block";
-    } else {
-      weekView.classList.add("active");
-      todayView.classList.remove("active");
-
-      // esconde os cards astronômicos de hoje para não repetir
-      todayAstroSection.style.display = "none";
-    }
+    setActiveView(tab.dataset.view);
   });
 });
+
+function setActiveView(view) {
+  currentView = view;
+
+  tabs.forEach((tab) => {
+    tab.classList.toggle("active", tab.dataset.view === currentView);
+  });
+
+  todayView.classList.toggle("active", currentView === "today");
+  weekView.classList.toggle("active", currentView === "week");
+  todayView.style.display = currentView === "today" ? "block" : "none";
+  weekView.style.display = currentView === "week" ? "block" : "none";
+
+  updateDashboardModeVisibility();
+}
+
+function updateDashboardModeVisibility() {
+  const showMainCityData = !showingFavoriteDashboard;
+
+  if (todayWeatherGrid) {
+    todayWeatherGrid.style.display = showMainCityData ? "" : "none";
+  }
+
+  if (todayDetailsPanel) {
+    todayDetailsPanel.style.display = showMainCityData ? "" : "none";
+  }
+
+  if (todayAstroSection) {
+    todayAstroSection.style.display = showMainCityData ? "block" : "none";
+  }
+
+  if (weekWeatherTitle) {
+    weekWeatherTitle.style.display = showMainCityData ? "" : "none";
+  }
+
+  if (weekGrid) {
+    weekGrid.style.display = showMainCityData ? "" : "none";
+  }
+
+  if (weekAstroTitle) {
+    weekAstroTitle.style.display = showMainCityData ? "" : "none";
+  }
+
+  if (weekAstroGrid) {
+    weekAstroGrid.style.display = showMainCityData ? "" : "none";
+  }
+
+  favoriteButton.style.display = showMainCityData ? "inline-flex" : "none";
+}
 //  evento de submit para o formulario, para quando for pesquisado um país
 
 form.addEventListener("submit", async (event) => {
@@ -117,6 +171,12 @@ form.addEventListener("submit", async (event) => {
     }
 
     // aqui mostra o que vai ser exibido ao executar a cidade encontrada (localização, o tempo hoje e daqui uma semana)
+    currentPlace = place;
+
+    clearFavoriteDashboardResults();
+    showingFavoriteDashboard = false;
+    updateDashboardModeVisibility();
+
     const weatherData = await getWeather(place.latitude, place.longitude);
 
     renderLocation(place);
@@ -488,6 +548,12 @@ function renderAstroWeek(data) {
   // pega a div do HTML onde os cards da semana astronômica aparecerão
   const weekAstroGrid = document.getElementById("weekAstroGrid");
 
+const todayWeatherGrid = document.querySelector("#todayView > .cards-grid");
+const todayDetailsPanel = document.querySelector("#todayView > .details-panel");
+const weekWeatherTitle = document.querySelector("#weekView > h2");
+const weekAstroTitle = document.querySelector("#weekView > .astro-week-title");
+
+
   // limpa os cards antigos antes de criar novos
   weekAstroGrid.innerHTML = "";
 
@@ -684,7 +750,7 @@ function getMoonPhaseEmoji(phase) {
 function getCountryFlag(countryCode) {
   // mapa completo de códigos de país para emojis de bandeira
   const flagMap = {
-    BR: "🇧🇷", 
+    BR: "🇧🇷",
     US: "🇺🇸",
     ES: "🇪🇸",
     FR: "🇫🇷",
@@ -774,9 +840,11 @@ function renderFavorites() {
 
     // ao clicar, remove da lista e salva
     removeButton.addEventListener("click", () => {
+      selectedFavoriteCities.delete(favorite);
       favorites.splice(index, 1); // remove do array
       localStorage.setItem("favorites", JSON.stringify(favorites)); // salva
       renderFavorites(); // re-renderiza
+      clearFavoriteDashboardResults();
       updateFavoriteButtonState(cityInput.value.trim());
     });
 
@@ -784,6 +852,9 @@ function renderFavorites() {
     container.appendChild(removeButton);
     favoritesList.appendChild(container);
   });
+
+  // Atualiza a seleção múltipla dos favoritos
+  updateFavoritesCheckboxes();
 }
 
 favoriteButton.addEventListener("click", () => {
@@ -805,6 +876,567 @@ favoriteButton.addEventListener("click", () => {
   renderFavorites();
   updateFavoriteButtonState(normalizedCity);
 });
+
+// Atualiza os checkboxes dos favoritos para permitir múltipla seleção
+function updateFavoritesCheckboxes() {
+  const checkboxesContainer = document.getElementById("favoritesCheckboxes");
+  const searchButton = document.getElementById("searchFavoriteButton");
+
+  checkboxesContainer.innerHTML = "";
+
+  const availableFavorites = new Set(favorites);
+  selectedFavoriteCities = new Set(
+    Array.from(selectedFavoriteCities).filter((city) =>
+      availableFavorites.has(city),
+    ),
+  );
+
+  if (favorites.length === 0) {
+    selectedFavoriteCities.clear();
+    checkboxesContainer.innerHTML =
+      '<p class="favorites-empty">Adicione cidades aos favoritos primeiro.</p>';
+    searchButton.disabled = true;
+    return;
+  }
+
+  favorites.forEach((favorite) => {
+    const label = document.createElement("label");
+    label.className = "favorite-checkbox-option";
+
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.value = favorite;
+    checkbox.className = "favorite-checkbox";
+    checkbox.checked = selectedFavoriteCities.has(favorite);
+    label.classList.toggle("selected", checkbox.checked);
+
+    checkbox.addEventListener("change", () => {
+      if (checkbox.checked) {
+        selectedFavoriteCities.add(favorite);
+      } else {
+        selectedFavoriteCities.delete(favorite);
+      }
+
+      label.classList.toggle("selected", checkbox.checked);
+      updateFavoritesSearchButtonState();
+    });
+
+    const span = document.createElement("span");
+    span.textContent = capitalizeCityName(favorite);
+
+    label.appendChild(checkbox);
+    label.appendChild(span);
+    checkboxesContainer.appendChild(label);
+  });
+
+  updateFavoritesSearchButtonState();
+}
+
+function updateFavoritesSearchButtonState() {
+  const searchButton = document.getElementById("searchFavoriteButton");
+
+  if (!searchButton) return;
+
+  searchButton.disabled =
+    favorites.length === 0 || selectedFavoriteCities.size === 0;
+}
+// Busca os dados de clima e astronomia dos favoritos selecionados
+document
+  .getElementById("searchFavoriteButton")
+  .addEventListener("click", async () => {
+    const checkboxes = document.querySelectorAll(".favorite-checkbox:checked");
+    const selectedCities = Array.from(checkboxes).map(
+      (checkbox) => checkbox.value,
+    );
+
+    if (selectedCities.length === 0) {
+      showStatus(
+        "Selecione pelo menos um favorito para ver clima e astronomia.",
+      );
+      return;
+    }
+
+    selectedFavoriteCities = new Set(selectedCities);
+
+    const searchButton = document.getElementById("searchFavoriteButton");
+    const originalButtonText = searchButton.textContent;
+    searchButton.disabled = true;
+    searchButton.textContent = "Buscando...";
+
+    showStatus(
+      `Buscando clima e astronomia de ${selectedCities.length} favorito(s)...`,
+    );
+
+    try {
+      const settledResults = await Promise.allSettled(
+        selectedCities.map((city) => fetchFavoriteDashboardData(city)),
+      );
+
+      const results = settledResults.map((result, index) => {
+        if (result.status === "fulfilled") {
+          return result.value;
+        }
+
+        console.error("Erro ao buscar favorito:", result.reason);
+        return {
+          city: selectedCities[index],
+          error: "Não foi possível carregar clima e astronomia.",
+        };
+      });
+      renderFavoriteDashboardResults(results);
+      renderFavoriteModeLocation(results);
+      showFavoriteDashboardSections();
+      scrollToActiveFavoriteSection();
+      hideStatus();
+    } catch (error) {
+      console.error("Erro ao buscar clima e astronomia múltiplos:", error);
+      showStatus("Erro ao carregar clima e astronomia dos favoritos.");
+    } finally {
+      searchButton.textContent = originalButtonText;
+      updateFavoritesSearchButtonState();
+    }
+  });
+
+async function fetchFavoriteDashboardData(city) {
+  const place = await getCityCoordinates(city);
+
+  if (!place) {
+    return {
+      city,
+      error: "Cidade não encontrada.",
+    };
+  }
+
+  const [weatherResult, astroResult] = await Promise.allSettled([
+    getWeather(place.latitude, place.longitude),
+    getAstronomyData(Number(place.latitude), Number(place.longitude)),
+  ]);
+
+  return {
+    city,
+    place,
+    weatherData:
+      weatherResult.status === "fulfilled" ? weatherResult.value : null,
+    astroData: astroResult.status === "fulfilled" ? astroResult.value : null,
+    weatherError:
+      weatherResult.status === "rejected"
+        ? "Não foi possível carregar os dados de clima."
+        : "",
+    astroError:
+      astroResult.status === "rejected"
+        ? "Não foi possível carregar os dados astronômicos."
+        : "",
+  };
+}
+
+function renderFavoriteDashboardResults(results) {
+  const todayContainer = document.getElementById("favoritesTodayResults");
+  const weekContainer = document.getElementById("favoritesWeekResults");
+  todayContainer.innerHTML = "";
+  weekContainer.innerHTML = "";
+
+  if (results.length === 0) {
+    todayContainer.innerHTML =
+      '<p class="favorites-empty">Nenhum favorito selecionado.</p>';
+    weekContainer.innerHTML =
+      '<p class="favorites-empty">Nenhum favorito selecionado.</p>';
+    return;
+  }
+
+  results.forEach((result) => {
+    todayContainer.appendChild(createFavoriteTodayArticle(result));
+    weekContainer.appendChild(createFavoriteWeekArticle(result));
+  });
+}
+
+function createFavoriteTodayArticle(result) {
+  const section = document.createElement("article");
+  section.className = "favorite-astro-result favorite-dashboard-result";
+
+  if (result.error) {
+    section.innerHTML = renderFavoriteResultError(result.city, result.error);
+    return section;
+  }
+
+  const { place, weatherData, astroData, weatherError, astroError } = result;
+
+  section.innerHTML = `
+    ${renderFavoriteHeading(place)}
+
+    <div class="favorite-dashboard-group">
+      <h4 class="favorite-result-title">Clima de hoje</h4>
+      ${renderFavoriteWeatherToday(weatherData, weatherError)}
+    </div>
+
+    <div class="favorite-dashboard-group">
+      <h4 class="favorite-result-title">Dados Astronômicos de hoje</h4>
+      ${renderFavoriteAstroToday(astroData, astroError)}
+    </div>
+  `;
+
+  return section;
+}
+
+function createFavoriteWeekArticle(result) {
+  const section = document.createElement("article");
+  section.className = "favorite-astro-result favorite-dashboard-result";
+
+  if (result.error) {
+    section.innerHTML = renderFavoriteResultError(result.city, result.error);
+    return section;
+  }
+
+  const { place, weatherData, astroData, weatherError, astroError } = result;
+
+  section.innerHTML = `
+    ${renderFavoriteHeading(place)}
+
+    <div class="favorite-dashboard-group">
+      <h4 class="favorite-result-title">Semana</h4>
+      ${renderFavoriteWeek(weatherData, astroData, weatherError, astroError)}
+    </div>
+  `;
+
+  return section;
+}
+
+function renderFavoriteResultError(city, message) {
+  return `
+    <div class="favorite-astro-heading">
+      <h3>${escapeHtml(capitalizeCityName(city))}</h3>
+    </div>
+    <div class="astro-grid">
+      <article class="astro-card astro-error-card">
+        <span class="card-label">Favorito</span>
+        <h3>Dados indisponíveis</h3>
+        <p>${escapeHtml(message)}</p>
+      </article>
+    </div>
+  `;
+}
+
+function renderFavoriteHeading(place) {
+  return `
+    <div class="favorite-astro-heading">
+      <h3>${escapeHtml(getFavoritePlaceTitle(place))}</h3>
+      <p>${escapeHtml(getFavoriteCountryDisplay(place))}</p>
+    </div>
+  `;
+}
+
+function renderFavoriteWeatherToday(weatherData, weatherError) {
+  if (weatherError || !weatherData?.current || !weatherData?.daily) {
+    return renderFavoriteErrorCard(
+      "Clima",
+      "Dados de clima indisponíveis",
+      weatherError || "Não foi possível carregar os dados de clima.",
+      "cards-grid",
+    );
+  }
+
+  const current = weatherData.current;
+  const daily = weatherData.daily;
+  const weather = getWeatherInfo(current.weather_code);
+
+  return `
+    <div class="cards-grid favorite-weather-grid">
+      <article class="metric-card main-card">
+        <span class="card-label">Clima</span>
+        <h3>${escapeHtml(weather.text)}</h3>
+        <p class="weather-emoji">${escapeHtml(weather.emoji)}</p>
+      </article>
+
+      <article class="metric-card">
+        <span class="card-label">Temperatura</span>
+        <h3>${escapeHtml(current.temperature_2m ?? "--")} °C</h3>
+        <p>Sensação: ${escapeHtml(current.apparent_temperature ?? "--")} °C</p>
+      </article>
+
+      <article class="metric-card">
+        <span class="card-label">Chuva</span>
+        <h3>${escapeHtml(current.precipitation ?? "--")} mm</h3>
+        <p>Probabilidade: ${escapeHtml(daily.precipitation_probability_max?.[0] ?? "--")}%</p>
+      </article>
+
+      <article class="metric-card">
+        <span class="card-label">Vento</span>
+        <h3>${escapeHtml(current.wind_speed_10m ?? "--")} km/h</h3>
+        <p>Direção: ${escapeHtml(getWindDirection(current.wind_direction_10m ?? 0))}</p>
+      </article>
+    </div>
+
+    <div class="details-panel favorite-details-panel">
+      <div class="details-item">
+        <span>Umidade</span>
+        <strong>${escapeHtml(current.relative_humidity_2m ?? "--")}%</strong>
+      </div>
+      <div class="details-item">
+        <span>Máxima do dia</span>
+        <strong>${escapeHtml(daily.temperature_2m_max?.[0] ?? "--")} °C</strong>
+      </div>
+      <div class="details-item">
+        <span>Mínima do dia</span>
+        <strong>${escapeHtml(daily.temperature_2m_min?.[0] ?? "--")} °C</strong>
+      </div>
+      <div class="details-item">
+        <span>Horário local</span>
+        <strong>${escapeHtml(formatDateTime(current.time))}</strong>
+      </div>
+    </div>
+  `;
+}
+
+function renderFavoriteAstroToday(astroData, astroError) {
+  if (astroError || !astroData?.data?.rows?.length) {
+    return renderFavoriteErrorCard(
+      "Astronomia",
+      "Dados astronômicos indisponíveis",
+      astroError || "Não foi possível carregar os dados astronômicos.",
+      "astro-grid",
+    );
+  }
+
+  const astro = getFavoriteAstroSummary(astroData, 0, true);
+
+  return `
+    <div class="astro-grid">
+      <article class="astro-card">
+        <span class="card-label">Lua</span>
+        <h3>${escapeHtml(astro.moonText)}</h3>
+        <p>Constelação: ${escapeHtml(astro.moonConstellation)}</p>
+      </article>
+
+      <article class="astro-card">
+        <span class="card-label">Sol</span>
+        <h3>Constelação: ${escapeHtml(astro.sunConstellation)}</h3>
+        <p>Altitude: ${escapeHtml(astro.sunAltitude)}</p>
+      </article>
+
+      <article class="astro-card">
+        <span class="card-label">Planetas</span>
+        <div class="favorite-planet-list">
+          ${renderFavoritePlanetList(astro.planets)}
+        </div>
+      </article>
+    </div>
+  `;
+}
+
+function renderFavoriteWeek(weatherData, astroData, weatherError, astroError) {
+  const dates = getFavoriteWeekDates(weatherData, astroData).slice(0, 7);
+
+  if (!dates.length) {
+    return renderFavoriteErrorCard(
+      "Semana",
+      "Dados semanais indisponíveis",
+      "Não foi possível carregar os cards da semana.",
+      "week-grid",
+    );
+  }
+
+  const daily = weatherData?.daily;
+
+  return `
+    <div class="week-grid favorite-week-grid">
+      ${dates
+        .map((date, index) => {
+          const weather = daily ? getWeatherInfo(daily.weather_code?.[index]) : null;
+          const astro = getFavoriteAstroSummary(astroData, index, false);
+          const weatherUnavailable = weatherError || !daily;
+          const astroUnavailable = astroError || !astroData?.data?.rows?.length;
+
+          return `
+            <article class="week-card favorite-week-card">
+              <h3 class="day-name">${escapeHtml(getWeekDay(date))}</h3>
+              <span class="date">${escapeHtml(formatDate(date))}</span>
+              <div class="week-emoji">${escapeHtml(weather?.emoji || "--")}</div>
+              <ul>
+                <li><strong>Clima:</strong> ${escapeHtml(weatherUnavailable ? "--" : weather.text)}</li>
+                <li><strong>Máx:</strong> ${escapeHtml(weatherUnavailable ? "--" : daily.temperature_2m_max?.[index] ?? "--")} °C</li>
+                <li><strong>Mín:</strong> ${escapeHtml(weatherUnavailable ? "--" : daily.temperature_2m_min?.[index] ?? "--")} °C</li>
+                <li><strong>Chuva:</strong> ${escapeHtml(weatherUnavailable ? "--" : daily.precipitation_sum?.[index] ?? "--")} mm</li>
+                <li><strong>Chance:</strong> ${escapeHtml(weatherUnavailable ? "--" : daily.precipitation_probability_max?.[index] ?? "--")}%</li>
+                <li><strong>Vento:</strong> ${escapeHtml(weatherUnavailable ? "--" : daily.wind_speed_10m_max?.[index] ?? "--")} km/h</li>
+                <li class="favorite-week-divider"><strong>Astronomia:</strong> ${escapeHtml(astroUnavailable ? "--" : astro.moonText)}</li>
+                <li><strong>Lua:</strong> ${escapeHtml(astroUnavailable ? "--" : astro.moonConstellation)}</li>
+                <li><strong>Sol:</strong> ${escapeHtml(astroUnavailable ? "--" : astro.sunConstellation)}</li>
+                <li><strong>Altitude:</strong> ${escapeHtml(astroUnavailable ? "--" : astro.sunAltitude)}</li>
+                <li><strong>Planetas:</strong><br>${astroUnavailable ? "--" : renderFavoritePlanetsInline(astro.planets)}</li>
+              </ul>
+            </article>
+          `;
+        })
+        .join("")}
+    </div>
+  `;
+}
+
+function getFavoriteAstroSummary(astroData, index = 0, allowFallback = false) {
+  const rows = astroData?.data?.rows || [];
+  const moon = rows.find((item) => item?.body?.id === "moon");
+  const sun = rows.find((item) => item?.body?.id === "sun");
+  const planets = rows.filter((item) =>
+    ["mercury", "venus", "mars", "jupiter", "saturn"].includes(
+      item?.body?.id,
+    ),
+  );
+
+  const moonPosition = getFavoriteAstroPosition(moon, index, allowFallback);
+  const moonPhaseEnglish = moonPosition?.extraInfo?.phase?.string;
+  const sunPosition = getFavoriteAstroPosition(sun, index, allowFallback)?.position;
+
+  return {
+    moonText: `${getMoonPhaseEmoji(moonPhaseEnglish)} ${translateMoonPhase(
+      moonPhaseEnglish,
+    )}`,
+    moonConstellation: translateConstellation(
+      moonPosition?.position?.constellation?.name || "--",
+    ),
+    sunConstellation: translateConstellation(
+      sunPosition?.constellation?.name || "--",
+    ),
+    sunAltitude: sunPosition?.horizontal?.altitude?.string || "--",
+    planets: planets.map((planet) => {
+      const planetPosition = getFavoriteAstroPosition(
+        planet,
+        index,
+        allowFallback,
+      )?.position;
+
+      return {
+        name: translatePlanetName(planet.body.id),
+        constellation: translateConstellation(
+          planetPosition?.constellation?.name || "--",
+        ),
+      };
+    }),
+  };
+}
+
+function getFavoriteAstroPosition(body, index, allowFallback) {
+  return body?.positions?.[index] || (allowFallback ? body?.positions?.[0] : null);
+}
+
+function getFavoriteWeekDates(weatherData, astroData) {
+  if (weatherData?.daily?.time?.length) {
+    return weatherData.daily.time;
+  }
+
+  const moon = astroData?.data?.rows?.find((item) => item?.body?.id === "moon");
+
+  return (moon?.positions || [])
+    .map((position) => position?.date?.split("T")?.[0])
+    .filter(Boolean);
+}
+
+function renderFavoritePlanetList(planets) {
+  if (!planets.length) return "<p>--</p>";
+
+  return planets
+    .map(
+      (planet) =>
+        `<p>${escapeHtml(planet.name)}: ${escapeHtml(planet.constellation)}</p>`,
+    )
+    .join("");
+}
+
+function renderFavoritePlanetsInline(planets) {
+  if (!planets.length) return "--";
+
+  return planets
+    .map(
+      (planet) =>
+        `${escapeHtml(planet.name)}: ${escapeHtml(planet.constellation)}`,
+    )
+    .join("<br>");
+}
+
+function renderFavoriteErrorCard(label, title, message, gridClass) {
+  return `
+    <div class="${escapeHtml(gridClass)}">
+      <article class="astro-card astro-error-card">
+        <span class="card-label">${escapeHtml(label)}</span>
+        <h3>${escapeHtml(title)}</h3>
+        <p>${escapeHtml(message)}</p>
+      </article>
+    </div>
+  `;
+}
+
+function removeCurrentPlaceFromFavoriteResults(results) {
+  return results.filter(
+    (result) => !result.place || !isSameFavoritePlace(result.place, currentPlace),
+  );
+}
+
+function isSameFavoritePlace(placeA, placeB) {
+  if (!placeA || !placeB) return false;
+
+  if (placeA.id && placeB.id) {
+    return String(placeA.id) === String(placeB.id);
+  }
+
+  return getFavoritePlaceKey(placeA) === getFavoritePlaceKey(placeB);
+}
+
+function getFavoritePlaceKey(place) {
+  return [place.name, place.admin1, place.country_code]
+    .map((part) => String(part || "").trim().toLowerCase())
+    .join("|");
+}
+
+function renderFavoriteModeLocation(results) {
+  const title = document.getElementById("locationTitle");
+  const subtitle = document.getElementById("locationSubtitle");
+  const names = results.map((result) =>
+    result.place ? getFavoritePlaceTitle(result.place) : capitalizeCityName(result.city),
+  );
+
+  title.textContent =
+    names.length === 1 ? names[0] : `${names.length} favoritos selecionados`;
+  subtitle.textContent = names.join(", ");
+}
+
+function showFavoriteDashboardSections() {
+  showingFavoriteDashboard = true;
+  document.getElementById("favoritesTodaySection").classList.remove("hidden");
+  document.getElementById("favoritesWeekSection").classList.remove("hidden");
+  updateDashboardModeVisibility();
+}
+
+function clearFavoriteDashboardResults() {
+  const todaySection = document.getElementById("favoritesTodaySection");
+  const weekSection = document.getElementById("favoritesWeekSection");
+  const todayResults = document.getElementById("favoritesTodayResults");
+  const weekResults = document.getElementById("favoritesWeekResults");
+
+  if (todayResults) todayResults.innerHTML = "";
+  if (weekResults) weekResults.innerHTML = "";
+  if (todaySection) todaySection.classList.add("hidden");
+  if (weekSection) weekSection.classList.add("hidden");
+  showingFavoriteDashboard = false;
+  updateDashboardModeVisibility();
+}
+
+function scrollToActiveFavoriteSection() {
+  const targetId = currentView === "week" ? "favoritesWeekSection" : "favoritesTodaySection";
+  const target = document.getElementById(targetId);
+
+  target?.scrollIntoView({
+    behavior: "smooth",
+    block: "start",
+  });
+}
+
+function getFavoritePlaceTitle(place) {
+  return `${place.name}${place.admin1 ? ", " + place.admin1 : ""}`;
+}
+
+function getFavoriteCountryDisplay(place) {
+  return place.country_code
+    ? `(${place.country_code.toUpperCase()}) ${place.country}`
+    : place.country || "Localização não informada";
+}
 
 // Carrega os favoritos salvos ao iniciar a página
 renderFavorites();
